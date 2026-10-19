@@ -40,7 +40,15 @@ int maximo_sec(const vector<int> &v, size_t ini, size_t fin) {
 // niveles que todavía pueden crear hilos; cuando se acaba, o cuando el tramo
 // baja de MINIMO, el tramo se resuelve con maximo_sec.
 int maximo_par(const vector<int> &v, size_t ini, size_t fin, int prof) {
-  return 0;
+  if (fin - ini <= MINIMO || prof == 0) {
+    return maximo_sec(v, ini, fin);
+  }
+  size_t med = ini + (fin - ini) / 2;
+  int izq;
+  thread hilo([&]() { izq = maximo_par(v, ini, med, prof - 1); });
+  int der = maximo_par(v, med, fin, prof - 1);
+  hilo.join();
+  return max(izq, der);
 }
 
 int main() {

@@ -37,6 +37,43 @@ void secuencial(const vector<long> &v, vector<long> &r) {
 // de los bloques anteriores es su punto de partida. Segunda: cada hilo rehace
 // su bloque arrancando desde ese punto y escribe r.
 void en_dos_pasadas(const vector<long> &v, vector<long> &r) {
+  size_t paso = v.size() / BLOQUES;
+  auto limites = [&](int h, size_t &ini, size_t &fin) {
+    ini = h * paso;
+    fin = (h == BLOQUES - 1) ? v.size() : ini + paso;  // el último toma el resto
+  };
+
+  // Primera pasada: el máximo de cada bloque.
+  vector<long> maximos(BLOQUES, LONG_MIN);
+  vector<thread> hilos;
+  for (int h = 0; h < BLOQUES; h++)
+    hilos.emplace_back([&, h] {
+      size_t ini, fin;
+      limites(h, ini, fin);
+      long mejor = LONG_MIN;
+      for (size_t i = ini; i < fin; i++) mejor = max(mejor, saldo(v[i]));
+      maximos[h] = mejor;  // una sola escritura al final
+    });
+  for (auto &t : hilos) t.join();
+
+  // Entre pasadas: punto de partida de cada bloque (exclusivo).
+  vector<long> desde(BLOQUES, LONG_MIN);
+  for (int h = 1; h < BLOQUES; h++)
+    desde[h] = max(desde[h - 1], maximos[h - 1]);
+
+  // Segunda pasada: cada bloque rehace su recorrido desde su punto.
+  hilos.clear();
+  for (int h = 0; h < BLOQUES; h++)
+    hilos.emplace_back([&, h] {
+      size_t ini, fin;
+      limites(h, ini, fin);
+      long mejor = desde[h];
+      for (size_t i = ini; i < fin; i++) {
+        mejor = max(mejor, saldo(v[i]));
+        r[i] = mejor;
+      }
+    });
+  for (auto &t : hilos) t.join();
 }
 
 // Llenado determinista: una serie que sube con ruido, la misma en todas las

@@ -1,0 +1,2 @@
+secuencial 5010.3 ms ultimo 2000320
+dos_pasadas 1561.5 ms ultimo 2000320 bloques 8 coinciden

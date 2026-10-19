@@ -46,14 +46,39 @@ long bloques(Patron costo) {
 
 // TODO: por turnos. El hilo h hace las tareas h, h + 4, h + 8, ...
 long turnos(Patron costo) {
-  return 0;
+  vector<long> parciales(HILOS, 0);
+  vector<thread> hilos;
+  for (int h = 0; h < HILOS; h++)
+    hilos.emplace_back([&, h] {
+      long s = 0;
+      for (int i = h; i < TAREAS; i += HILOS) s += trabajo(costo(i));
+      parciales[h] = s;  // una sola escritura al final
+    });
+  for (auto &t : hilos) t.join();
+  long total = 0;
+  for (long p : parciales) total += p;
+  return total;
 }
 
 // TODO: por demanda. Un contador compartido entrega la siguiente tarea
 // libre; cada hilo toma una, la hace y vuelve por otra hasta que se acaban.
 // Un atomic<int> con fetch_add reparte sin cerrojo.
 long demanda(Patron costo) {
-  return 0;
+  vector<long> parciales(HILOS, 0);
+  atomic<int> siguiente{0};
+  vector<thread> hilos;
+  for (int h = 0; h < HILOS; h++)
+    hilos.emplace_back([&, h] {
+      long s = 0;
+      int i;
+      while ((i = siguiente.fetch_add(1)) < TAREAS)  // una sola lectura del contador
+        s += trabajo(costo(i));
+      parciales[h] = s;
+    });
+  for (auto &t : hilos) t.join();
+  long total = 0;
+  for (long p : parciales) total += p;
+  return total;
 }
 
 int main() {

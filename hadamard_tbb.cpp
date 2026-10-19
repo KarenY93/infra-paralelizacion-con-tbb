@@ -24,17 +24,43 @@ const int B = 9;  // valor constante de v
 // TODO: llena v con `valor` usando parallel_for sobre un blocked_range con
 // el grano indicado.
 void llenar(vector<int> &v, int valor, size_t grano) {
+  tbb::parallel_for
+  (tbb::blocked_range<size_t>
+    (0, v.size(), grano),
+    [&](const tbb::blocked_range<size_t> &r) {
+        for (size_t i = r.begin(); i < r.end(); ++i) {
+          v[i] = valor;
+        }
+      });
 }
 
 // TODO: w[i] = u[i] * v[i] con parallel_for.
 void producto(const vector<int> &u, const vector<int> &v, vector<int> &w,
               size_t grano) {
+  tbb::parallel_for
+  (tbb::blocked_range<size_t>
+    (0, w.size(), grano),
+    [&](const tbb::blocked_range<size_t> &r) {
+        for (size_t i = r.begin(); i < r.end(); ++i) {
+          w[i] = u[i] * v[i];
+        }
+      });
 }
 
 // TODO: la suma de w con parallel_reduce. El valor inicial es 0L y los
 // parciales se combinan sumando.
 long sumar(const vector<int> &w, size_t grano) {
-  return 0;
+  return tbb::parallel_reduce
+  (tbb::blocked_range<size_t>
+    (0, w.size(), grano),
+    0L,
+    [&](const tbb::blocked_range<size_t> &r, long parcial) {
+        for (size_t i = r.begin(); i < r.end(); ++i) {
+          parcial += w[i];
+        }
+        return parcial;
+      },
+    [](long a, long b) { return a + b; });
 }
 
 int main(int argc, char **argv) {

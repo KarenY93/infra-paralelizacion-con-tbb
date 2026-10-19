@@ -18,11 +18,19 @@ const int B = 9;  // valor constante de v
 // TODO: cada hilo calcula w[i] = u[i] * v[i] sobre su trozo [ini, fin).
 void producto(const vector<int> &u, const vector<int> &v, vector<int> &w,
               size_t ini, size_t fin) {
+  for (size_t i = ini; i < fin; ++i) {
+    w[i] = u[i] * v[i];
+  }
 }
 
 // TODO: cada hilo suma su trozo de w y deja el parcial en `salida`. Acumular
 // en una variable local y escribir `salida` una sola vez al final.
 void sumar(const vector<int> &w, size_t ini, size_t fin, long &salida) {
+  long parcial = 0;
+  for (size_t i = ini; i < fin; ++i) {
+    parcial += w[i];
+  }
+  salida = parcial;
 }
 
 // TODO: reparte [0, n) en k trozos, lanza los hilos del producto y los une;
@@ -30,7 +38,32 @@ void sumar(const vector<int> &w, size_t ini, size_t fin, long &salida) {
 // trozo se queda con el resto cuando n no es múltiplo de k.
 long hadamard(const vector<int> &u, const vector<int> &v, vector<int> &w,
               int k) {
-  return 0;
+  size_t n = u.size();
+  vector<thread> hilos(k);
+  vector<long> parciales(k);
+
+  size_t trozo = n / k;
+
+  // Fase 1: producto
+  for (int t = 0; t < k; ++t) {
+    size_t ini = t * trozo;
+    size_t fin = (t == k - 1) ? n : ini + trozo;  // el último se queda el resto
+    hilos[t] = thread(producto, cref(u), cref(v), ref(w), ini, fin);
+  }
+  for (auto &h : hilos) h.join();
+
+  // Fase 2: suma de parciales
+  for (int t = 0; t < k; ++t) {
+    size_t ini = t * trozo;
+    size_t fin = (t == k - 1) ? n : ini + trozo;
+    hilos[t] = thread(sumar, cref(w), ini, fin, ref(parciales[t]));
+  }
+  for (auto &h : hilos) h.join();
+
+  // Combinar
+  long suma = 0;
+  for (long p : parciales) suma += p;
+  return suma;
 }
 
 int main(int argc, char **argv) {
